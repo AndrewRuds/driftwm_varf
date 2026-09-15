@@ -263,6 +263,12 @@ pub fn resize_edge_at(
     })
 }
 
+fn squircle_dist(dx: f64, dy: f64, r: f64) -> f64 {
+    let ax = (dx / r).abs();
+    let ay = (dy / r).abs();
+    r * (ax.powi(4) + ay.powi(4)).powf(0.25)
+}
+
 /// CPU-render the title bar: solid background, rounded top corners, title text,
 /// and a "×" close button. `corner_radius` is in logical px — the caller's
 /// decided radius, which is not always the configured one. `scale` supersamples
@@ -446,7 +452,7 @@ fn body_corner_alpha_at(x: i32, y: i32, w: i32, h: i32, r: f64) -> f64 {
 
     let dx = px - cx;
     let dy = py - cy;
-    let dist = (dx * dx + dy * dy).sqrt();
+    let dist = squircle_dist(dx, dy, r);
     let t = (dist - r + 0.5).clamp(0.0, 1.0);
     1.0 - t * t * (3.0 - 2.0 * t)
 }
@@ -463,7 +469,7 @@ fn corner_alpha_at(x: i32, y: i32, w: i32, r: f64) -> f64 {
     if px < r && py < r {
         let dx = r - px;
         let dy = r - py;
-        let dist = (dx * dx + dy * dy).sqrt();
+        let dist = squircle_dist(dx, dy, r);
         let t = (dist - r + 0.5).clamp(0.0, 1.0);
         return 1.0 - t * t * (3.0 - 2.0 * t);
     }
@@ -472,7 +478,7 @@ fn corner_alpha_at(x: i32, y: i32, w: i32, r: f64) -> f64 {
     if px > right_edge - r && py < r {
         let dx = px - (right_edge - r);
         let dy = r - py;
-        let dist = (dx * dx + dy * dy).sqrt();
+        let dist = squircle_dist(dx, dy, r);
         let t = (dist - r + 0.5).clamp(0.0, 1.0);
         return 1.0 - t * t * (3.0 - 2.0 * t);
     }

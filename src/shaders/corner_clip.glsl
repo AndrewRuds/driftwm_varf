@@ -49,7 +49,9 @@ float corner_alpha(vec2 coords, vec2 size, vec4 r) {
     } else {
         return 1.0;
     }
-    float dist = distance(coords, center);
+    vec2 d = abs(coords - center) / radius;
+    float n = 4.0; // higher = more square, lower = more round. Apple ≈ 4-5
+    float dist = radius * pow(pow(d.x, n) + pow(d.y, n), 1.0 / n);
     float t = clamp((dist - radius) * aa_scale + 0.5, 0.0, 1.0);
     return 1.0 - t * t * (3.0 - 2.0 * t);
 }
