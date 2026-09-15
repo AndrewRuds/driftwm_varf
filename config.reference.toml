@@ -115,6 +115,10 @@
                               # overrides it until a restart or a config edit
                               # that changes it
 # disable_on_external_mouse = false  # off while an external mouse is connected
+# invert_devices = []          # device-name substrings to flip on both axes
+                              # (pointer, scroll, swipe), for a trackpad
+                              # mounted upside down, e.g. ["Magic Trackpad"];
+                              # `libinput list-devices` shows the names
 
 [input.mouse]
 # accel_speed = 0.0           # pointer acceleration (-1.0 to 1.0)

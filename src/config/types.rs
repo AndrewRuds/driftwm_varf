@@ -469,6 +469,9 @@ pub struct TrackpadSettings {
     pub click_method: Option<String>,
     pub disable_while_typing: bool,
     pub send_events: SendEvents,
+    /// Device-name substrings whose motion, scroll and swipe deltas are
+    /// flipped on both axes (a trackpad mounted upside down).
+    pub invert_devices: Vec<String>,
 }
 
 impl Default for TrackpadSettings {
@@ -482,6 +485,22 @@ impl Default for TrackpadSettings {
             click_method: None,
             disable_while_typing: true,
             send_events: SendEvents::Enabled,
+            invert_devices: Vec::new(),
+        }
+    }
+}
+
+impl TrackpadSettings {
+    /// -1.0 for a device listed in `invert_devices`, else 1.0.
+    pub fn invert_sign(&self, device_name: &str) -> f64 {
+        if self
+            .invert_devices
+            .iter()
+            .any(|n| !n.is_empty() && device_name.contains(n.as_str()))
+        {
+            -1.0
+        } else {
+            1.0
         }
     }
 }

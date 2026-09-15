@@ -218,6 +218,12 @@ Default: `false`
 
 off while an external mouse is connected
 
+### `invert_devices`
+
+Default: `[]`
+
+device-name substrings whose pointer motion, scroll and swipe direction are flipped on both axes, for a trackpad mounted upside down, e.g. `["Magic Trackpad"]`; `libinput list-devices` shows the names
+
 ## `[input.mouse]`
 
 ### `accel_speed`

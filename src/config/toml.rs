@@ -97,6 +97,7 @@ pub(super) struct TrackpadConfig {
     pub disable_while_typing: Option<bool>,
     pub enable: Option<bool>,
     pub disable_on_external_mouse: Option<bool>,
+    pub invert_devices: Option<Vec<String>>,
 }
 
 #[derive(Serialize, Deserialize, Default)]

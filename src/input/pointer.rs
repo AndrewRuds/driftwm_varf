@@ -1520,6 +1520,7 @@ impl DriftWm {
     }
 
     pub(super) fn on_pointer_axis<I: InputBackend>(&mut self, event: I::PointerAxisEvent) {
+        let scroll_sign = self.config.trackpad.invert_sign(&event.device().name());
         if self.space.outputs().next().is_none() {
             return;
         }
@@ -1615,7 +1616,7 @@ impl DriftWm {
                 }
                 Some(_) => {}
                 None => {
-                    let frame = build_client_axis_frame::<I>(&event);
+                    let frame = build_client_axis_frame::<I>(&event, scroll_sign);
                     pointer.axis(self, frame);
                     pointer.frame(self);
                     return;
@@ -1674,8 +1675,8 @@ impl DriftWm {
         if let Some(action) = action {
             match action {
                 MouseAction::PanViewport => {
-                    let h = event.amount(Axis::Horizontal).unwrap_or(0.0);
-                    let v = event.amount(Axis::Vertical).unwrap_or(0.0);
+                    let h = event.amount(Axis::Horizontal).unwrap_or(0.0) * scroll_sign;
+                    let v = event.amount(Axis::Vertical).unwrap_or(0.0) * scroll_sign;
                     if h != 0.0 || v != 0.0 {
                         if source == AxisSource::Finger {
                             self.set_last_scroll_pan(Some(std::time::Instant::now()));
@@ -1771,7 +1772,7 @@ impl DriftWm {
             pointer.frame(self);
             return;
         }
-        let frame = build_client_axis_frame::<I>(&event);
+        let frame = build_client_axis_frame::<I>(&event, scroll_sign);
         pointer.axis(self, frame);
         pointer.frame(self);
     }
@@ -1865,7 +1866,7 @@ pub(super) fn edges_from_position(
 /// libinput finger-lift semantics: `amount(axis) == Some(0.0)` means the
 /// gesture ended for this axis (send `axis_stop`). `amount(axis) == None`
 /// means the axis wasn't part of this event at all (send nothing).
-fn build_client_axis_frame<I: InputBackend>(event: &I::PointerAxisEvent) -> AxisFrame {
+fn build_client_axis_frame<I: InputBackend>(event: &I::PointerAxisEvent, sign: f64) -> AxisFrame {
     let mut frame = AxisFrame::new(Event::time_msec(event)).source(event.source());
     let is_finger = event.source() == AxisSource::Finger;
     // Finger-lift: no axis carries non-zero data. Covers both Some(0.0)
@@ -1875,6 +1876,7 @@ fn build_client_axis_frame<I: InputBackend>(event: &I::PointerAxisEvent) -> Axis
         && !event.amount(Axis::Vertical).is_some_and(|a| a != 0.0);
     for axis in [Axis::Horizontal, Axis::Vertical] {
         if let Some(amount) = event.amount(axis) {
+            let amount = amount * sign;
             if amount != 0.0 {
                 frame = frame
                     .value(axis, amount)
@@ -1887,7 +1889,7 @@ fn build_client_axis_frame<I: InputBackend>(event: &I::PointerAxisEvent) -> Axis
             frame = frame.stop(axis);
         }
         if let Some(v120) = event.amount_v120(axis) {
-            frame = frame.v120(axis, v120 as i32);
+            frame = frame.v120(axis, (v120 * sign) as i32);
         }
     }
     frame

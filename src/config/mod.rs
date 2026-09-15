@@ -816,6 +816,7 @@ impl Config {
                     (true, true) => SendEvents::DisabledOnExternalMouse,
                     (true, false) => SendEvents::Enabled,
                 },
+                invert_devices: t.invert_devices.clone().unwrap_or_default(),
             }
         };
 

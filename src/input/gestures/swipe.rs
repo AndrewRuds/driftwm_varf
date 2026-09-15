@@ -6,7 +6,7 @@
 
 use smithay::{
     backend::input::{
-        Event, GestureBeginEvent, GestureEndEvent, GestureSwipeUpdateEvent, InputBackend,
+        Device, Event, GestureBeginEvent, GestureEndEvent, GestureSwipeUpdateEvent, InputBackend,
     },
     desktop::Window,
     input::pointer::{
@@ -215,7 +215,9 @@ impl DriftWm {
     }
 
     pub fn on_gesture_swipe_update<I: InputBackend>(&mut self, event: I::GestureSwipeUpdateEvent) {
-        let delta = event.delta();
+        let sign = self.config.trackpad.invert_sign(&event.device().name());
+        let raw = event.delta();
+        let delta: Point<f64, _> = Point::from((raw.x * sign, raw.y * sign));
         let time = Event::time_msec(&event);
         let (zoom, _) = self.gesture_camera_zoom();
 

@@ -8,8 +8,8 @@ pub(crate) mod touch;
 
 use smithay::{
     backend::input::{
-        AbsolutePositionEvent, Axis, ButtonState, Event, InputBackend, InputEvent, KeyState,
-        KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent, PointerMotionEvent,
+        AbsolutePositionEvent, Axis, ButtonState, Device, Event, InputBackend, InputEvent,
+        KeyState, KeyboardKeyEvent, PointerAxisEvent, PointerButtonEvent, PointerMotionEvent,
     },
     desktop::{WindowSurfaceType, layer_map_for_output},
     input::pointer::{MotionEvent, RelativeMotionEvent},
@@ -1344,7 +1344,9 @@ impl DriftWm {
             let output_size = crate::state::output_logical_size(&output);
             let pointer = self.seat.get_pointer().unwrap();
             let old_pos = pointer.current_location();
-            let delta = event.delta();
+            let sign = self.config.trackpad.invert_sign(&event.device().name());
+            let raw = event.delta();
+            let delta: Point<f64, _> = Point::from((raw.x * sign, raw.y * sign));
             // Screen-space while locked, and nothing else bounds it. The
             // unlocked path clamps via the output it lands on; here there is no
             // such lookup, so a mouse would walk the cursor off the output with
@@ -1366,7 +1368,13 @@ impl DriftWm {
         let old_canvas = pointer.current_location();
         let serial = SERIAL_COUNTER.next_serial();
         let time = Event::time_msec(&event);
-        let delta = event.delta();
+        // `input.trackpad.invert_devices`: a trackpad mounted upside down.
+        let sign = self.config.trackpad.invert_sign(&event.device().name());
+        let raw = event.delta();
+        let delta: Point<f64, _> = Point::from((raw.x * sign, raw.y * sign));
+        let raw_unaccel = event.delta_unaccel();
+        let delta_unaccel: Point<f64, _> =
+            Point::from((raw_unaccel.x * sign, raw_unaccel.y * sign));
 
         // Pointer lock: freeze position, only send relative motion
         if let Some(focus) = pointer.current_focus() {
@@ -1379,7 +1387,7 @@ impl DriftWm {
                     Some((focus, origin)),
                     &RelativeMotionEvent {
                         delta,
-                        delta_unaccel: event.delta_unaccel(),
+                        delta_unaccel,
                         utime: Event::time(&event),
                     },
                 );
@@ -1534,7 +1542,7 @@ impl DriftWm {
                     Some((focus.clone(), origin.unwrap_or(old_canvas))),
                     &RelativeMotionEvent {
                         delta,
-                        delta_unaccel: event.delta_unaccel(),
+                        delta_unaccel,
                         utime: Event::time(&event),
                     },
                 );
@@ -1552,7 +1560,7 @@ impl DriftWm {
             under,
             &RelativeMotionEvent {
                 delta,
-                delta_unaccel: event.delta_unaccel(),
+                delta_unaccel,
                 utime: Event::time(&event),
             },
         );
