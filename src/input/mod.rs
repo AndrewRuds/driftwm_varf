@@ -1346,7 +1346,7 @@ impl DriftWm {
             let old_pos = pointer.current_location();
             let sign = self.config.trackpad.invert_sign(&event.device().name());
             let raw = event.delta();
-            let delta: Point<f64, _> = Point::from((raw.x * sign, raw.y * sign));
+            let delta: Point<f64, Logical> = Point::from((raw.x * sign, raw.y * sign));
             // Screen-space while locked, and nothing else bounds it. The
             // unlocked path clamps via the output it lands on; here there is no
             // such lookup, so a mouse would walk the cursor off the output with
