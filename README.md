@@ -7,16 +7,69 @@
 </p>
 <p align="center"><sub>Primary repository: <a href="https://github.com/malbiruk/driftwm">GitHub</a> · Mirror: <a href="https://codeberg.org/malbiruk/driftwm">Codeberg</a></sub></p>
 
-## Fork additions
+## Fork additions by andrew_ruds
 
-New in this fork, including earlier work by **andrew_ruds**:
+This fork extends upstream driftwm with:
 
-- **Squircle window corners**, now toggleable with `[decorations] squircle = false` to restore circular rounded corners.
-- **Frosted-ice window backgrounds and custom GLSL blur shaders**. Classic Kawase blur is the default; set `[effects] blur_shader` to a GLSL file to opt in. The bundled `extras/blur/frosted_ice.glsl` animates through `u_time`, refreshed at `animate_blur_fps`.
-- **Reliable custom-blur caching**: animated frost keeps refreshing over a static backdrop, and custom displacement stays in window-local coordinates instead of changing with the shared-cache path.
-- **Per-device trackpad inversion** with `input.trackpad.invert_devices`, for trackpads mounted upside down.
+- **Squircle window corners**, enabled by default and switchable back to circular rounded corners.
+- **Frosted-ice window backgrounds and custom GLSL blur shaders**, including animated shaders that keep refreshing over a static backdrop and window-local displacement.
+- **Per-device trackpad inversion**, for trackpads mounted upside down.
 
 https://github.com/user-attachments/assets/155511a6-0a6e-4681-9061-21be1e93e02a
+
+### Squircle corners
+
+```toml
+[decorations]
+squircle = true   # superellipse corners (the default)
+# squircle = false  # classic circular rounded corners
+```
+
+`corner_radius` controls the corner size; `corner_radius = 0` disables rounding.
+
+### Custom window-background shaders
+
+Window-background shaders customize the blur behind translucent windows. They
+are separate from canvas wallpaper shaders, which are configured under
+`[background]`.
+
+To try the bundled frosted-ice shader on kitty:
+
+```bash
+mkdir -p ~/.config/driftwm
+cp extras/blur/frosted_ice.glsl ~/.config/driftwm/frosted_ice.glsl
+```
+
+```toml
+[effects]
+blur_shader = "~/.config/driftwm/frosted_ice.glsl"
+animate_blur_fps = 20
+
+[[window_rules]]
+app_id = "kitty"
+blur = true
+opacity = 0.85
+```
+
+Use `[decorations] blur = true` to blur every window instead, and lower the
+relevant opacity so the effect is visible. Set `blur_shader = "none"` to restore
+classic Kawase blur.
+
+To write your own shader, start from
+[`extras/blur/frosted_ice.glsl`](extras/blur/frosted_ice.glsl). It is a GLSL ES
+1.0 upsample shader and can use `tex`, `v_coords`, `alpha`, `u_halfpixel`,
+`u_offset`, and `u_time`. Reload the config after editing the shader, for
+example with `touch ~/.config/driftwm/config.toml`.
+
+### Per-device trackpad inversion
+
+List a device-name substring from `libinput list-devices` to flip pointer,
+scroll, and swipe directions on both axes for that device only:
+
+```toml
+[input.trackpad]
+invert_devices = ["Magic Trackpad"]
+```
 
 Traditional window managers arrange windows to fit your screen. Stacking compositors do so by piling windows on top of each other; tiling compositors do so by squeezing them to fit and utilizing workspaces.
 

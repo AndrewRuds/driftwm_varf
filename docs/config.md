@@ -660,12 +660,18 @@ per-pass texel spread
 
 Default: `"none"`
 
-Custom GLSL for the upsample passes, or "none" for classic Kawase blur. The shader receives tex, v_coords, alpha, u_halfpixel, u_offset and u_time; see extras/blur/frosted_ice.glsl. Reload config after editing the shader.
+Custom GLSL for the upsample passes, or "none" for classic Kawase blur. Applies to every blurred window: enable blur globally under [decorations] or per window with a rule, and lower its opacity to see the effect. For a canvas wallpaper shader, use [background] instead. The shader receives tex, v_coords, alpha, u_halfpixel, u_offset and u_time; start from extras/blur/frosted_ice.glsl. Reload config after editing the shader.
 
-**Example: frosted-ice window backgrounds**
+**Example: frosted-ice terminal background (copy the bundled shader there)**
 
 ```toml
-blur_shader = "/usr/local/share/driftwm/blur/frosted_ice.glsl"
+[effects]
+blur_shader = "~/.config/driftwm/frosted_ice.glsl"
+
+[[window_rules]]
+app_id = "kitty"
+blur = true
+opacity = 0.85
 ```
 
 ### `animate_blur_fps`
