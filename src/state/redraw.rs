@@ -190,6 +190,48 @@ impl DriftWm {
             .any(|o| self.background_animation_due(&o.name()))
     }
 
+    pub fn blur_animation_due(&self, output_name: &str) -> bool {
+        let fps = self.config.effects.animate_blur_fps;
+        if !self.render.blur_is_animated || fps == 0 {
+            return false;
+        }
+        self.render
+            .shared_blur
+            .get(output_name)
+            .is_some_and(|shared| {
+                shared.refreshed_at.is_none_or(|at| {
+                    at.elapsed() >= std::time::Duration::from_secs_f64(1.0 / fps as f64)
+                })
+            })
+    }
+
+    pub fn blur_animation_due_any(&self) -> bool {
+        self.active_outputs
+            .iter()
+            .filter(|o| !self.dpms_off_outputs.contains(o))
+            .any(|o| self.blur_animation_due(&o.name()))
+    }
+
+    /// Time until the oldest active animated-blur cadence expires.
+    pub fn blur_animation_wait(&self) -> Option<std::time::Duration> {
+        let fps = self.config.effects.animate_blur_fps;
+        if !self.render.blur_is_animated || fps == 0 {
+            return None;
+        }
+        let interval = std::time::Duration::from_secs_f64(1.0 / fps as f64);
+        self.active_outputs
+            .iter()
+            .filter(|o| !self.dpms_off_outputs.contains(o))
+            .filter_map(|o| self.render.shared_blur.get(&o.name()))
+            .map(|shared| {
+                let elapsed = shared.refreshed_at.map_or(interval, |at| at.elapsed());
+                interval
+                    .saturating_sub(elapsed)
+                    .max(std::time::Duration::from_millis(1))
+            })
+            .min()
+    }
+
     pub fn has_active_animations(&self) -> bool {
         self.space
             .outputs()

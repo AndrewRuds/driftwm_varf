@@ -30,6 +30,7 @@ uniform float aa_scale; // output_scale * zoom — keeps AA band ~1 output px wi
 uniform vec2 geo_size; // window geometry size (pre-zoom physical)
 uniform vec4 corner_radius; // (top_left, top_right, bottom_right, bottom_left)
 uniform mat3 input_to_geo; // buffer UV → geometry-normalized [0,1]²
+uniform float u_squircle;
 
 float corner_alpha(vec2 coords, vec2 size, vec4 r) {
     vec2 center;
@@ -50,7 +51,7 @@ float corner_alpha(vec2 coords, vec2 size, vec4 r) {
         return 1.0;
     }
     vec2 d = abs(coords - center) / radius;
-    float n = 4.0; // higher = more square, lower = more round. Apple ≈ 4-5
+    float n = mix(2.0, 4.0, u_squircle);
     float dist = radius * pow(pow(d.x, n) + pow(d.y, n), 1.0 / n);
     float t = clamp((dist - radius) * aa_scale + 0.5, 0.0, 1.0);
     return 1.0 - t * t * (3.0 - 2.0 * t);

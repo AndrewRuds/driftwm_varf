@@ -51,6 +51,10 @@ pub(super) const SHADOW_UNIFORMS: &[UniformName<'static>] = &[
         name: Cow::Borrowed("u_corner_radius"),
         type_: UniformType::_1f,
     },
+    UniformName {
+        name: Cow::Borrowed("u_squircle"),
+        type_: UniformType::_1f,
+    },
 ];
 
 /// Compile the shadow shader program. Called once at startup alongside the background shader.
@@ -104,6 +108,7 @@ fn shadow_uniforms_precise(
     zoom: f64,
     shadow_radius: f32,
     corner_radius_phys: f32,
+    squircle: bool,
 ) -> (Vec<Uniform<'static>>, ShadowPhysKey) {
     use driftwm::config::DecorationConfig;
     let sc = DecorationConfig::SHADOW_COLOR;
@@ -152,6 +157,7 @@ fn shadow_uniforms_precise(
             ),
         ),
         Uniform::new("u_corner_radius", corner_logical as f32),
+        Uniform::new("u_squircle", if squircle { 1.0 } else { 0.0 }),
     ];
 
     let key: ShadowPhysKey = [
@@ -216,6 +222,7 @@ pub(super) fn bake_shadow_element(
     shader: &GlesPixelProgram,
     body_logical: Rectangle<f64, Logical>,
     corner_radius_logical: f32,
+    squircle: bool,
     output_scale: Scale<f64>,
 ) -> (PixelShaderElement, Rectangle<i32, Logical>) {
     let shadow_radius = driftwm::config::DecorationConfig::SHADOW_RADIUS;
@@ -227,6 +234,7 @@ pub(super) fn bake_shadow_element(
         1.0,
         shadow_radius,
         corner_radius_logical * output_scale.x as f32,
+        squircle,
     );
     (
         PixelShaderElement::new(
@@ -243,10 +251,12 @@ pub(super) fn bake_shadow_element(
 
 /// A fresh, uncached border element in bake-local logical coords (see
 /// [`bake_shadow_element`] for why zoom and alpha are pinned at 1).
+#[allow(clippy::too_many_arguments)]
 pub(super) fn bake_border_element(
     shader: &GlesPixelProgram,
     inner_logical: Rectangle<f64, Logical>,
     inner_radius_logical: f32,
+    squircle: bool,
     border_width_logical: i32,
     color: [u8; 4],
     focused: bool,
@@ -266,6 +276,7 @@ pub(super) fn bake_border_element(
         border_w_phys,
         color,
         focused,
+        squircle,
     );
     Some((
         PixelShaderElement::new(
@@ -301,6 +312,7 @@ pub(super) fn push_shadow_element(
     shader: &GlesPixelProgram,
     body_logical: Rectangle<f64, Logical>,
     corner_radius_logical: f32,
+    squircle: bool,
     opacity: f64,
     output_scale: Scale<f64>,
     zoom: f64,
@@ -319,6 +331,7 @@ pub(super) fn push_shadow_element(
         zoom,
         shadow_radius,
         corner_r_phys,
+        squircle,
     );
 
     // Alpha is baked into the element at construction; rebuild on opacity change.
@@ -392,6 +405,10 @@ pub(super) const BORDER_UNIFORMS: &[UniformName<'static>] = &[
         name: Cow::Borrowed("u_color"),
         type_: UniformType::_4f,
     },
+    UniformName {
+        name: Cow::Borrowed("u_squircle"),
+        type_: UniformType::_1f,
+    },
 ];
 
 pub fn compile_border_shader(renderer: &mut GlesRenderer) -> Option<GlesPixelProgram> {
@@ -419,6 +436,7 @@ fn border_uniforms_precise(
     border_width_phys: f32,
     color: [u8; 4],
     focused: bool,
+    squircle: bool,
 ) -> (Vec<Uniform<'static>>, BorderPhysKey) {
     let zoom_scale = Scale::from(zoom);
 
@@ -469,6 +487,7 @@ fn border_uniforms_precise(
                 color[3] as f32 / 255.0,
             ),
         ),
+        Uniform::new("u_squircle", if squircle { 1.0 } else { 0.0 }),
     ];
 
     let key: BorderPhysKey = [
@@ -502,6 +521,7 @@ pub(super) fn push_border_element(
     shader: &GlesPixelProgram,
     inner_logical: Rectangle<f64, Logical>,
     inner_radius_logical: f32,
+    squircle: bool,
     border_width_logical: i32,
     color: [u8; 4],
     focused: bool,
@@ -535,6 +555,7 @@ pub(super) fn push_border_element(
         border_w_phys,
         color,
         focused,
+        squircle,
     );
 
     if cache
@@ -598,6 +619,10 @@ pub(super) const CORNER_CLIP_UNIFORMS: &[UniformName<'static>] = &[
     UniformName {
         name: Cow::Borrowed("input_to_geo"),
         type_: UniformType::Matrix3x3,
+    },
+    UniformName {
+        name: Cow::Borrowed("u_squircle"),
+        type_: UniformType::_1f,
     },
 ];
 

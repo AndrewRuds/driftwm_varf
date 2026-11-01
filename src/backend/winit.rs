@@ -61,11 +61,14 @@ pub fn init_winit(
         data.render.border_shader = crate::render::compile_border_shader(backend.renderer());
         data.render.corner_clip_shader =
             crate::render::compile_corner_clip_shader(backend.renderer());
-        let (blur_down, blur_up, blur_mask) =
-            crate::render::compile_blur_shaders(backend.renderer());
+        let (blur_down, blur_up, blur_mask, blur_animated) = crate::render::compile_blur_shaders(
+            backend.renderer(),
+            data.config.effects.blur_shader.as_deref(),
+        );
         data.render.blur_down_shader = blur_down;
         data.render.blur_up_shader = blur_up;
         data.render.blur_mask_shader = blur_mask;
+        data.render.blur_is_animated = blur_animated;
         // The blur's wrap mode is a property of the GL context, and this is a
         // new one.
         data.render.blur_wrap_mode = None;

@@ -192,6 +192,7 @@ fn push_corner_clipped_elements(
     shader: &GlesTexProgram,
     geometry: Rectangle<f64, Logical>,
     corner_radius: [f32; 4],
+    squircle: bool,
     zoom: f64,
     output_scale: f64,
     animation: Option<WindowRenderAnimation>,
@@ -214,6 +215,7 @@ fn push_corner_clipped_elements(
                 shader.clone(),
                 geometry,
                 clamped,
+                squircle,
                 output_scale,
                 aa_scale,
             ),
@@ -572,6 +574,7 @@ pub(crate) fn compose_capture_elements(
                         shader,
                         geometry,
                         [0.0, 0.0, radius, radius],
+                        state.config.decorations.squircle,
                         zoom,
                         output_scale,
                         None,
@@ -597,6 +600,7 @@ pub(crate) fn compose_capture_elements(
                     &shader,
                     inner_logical,
                     effective_corner_radius as f32,
+                    state.config.decorations.squircle,
                     effective_bw,
                     border_color,
                     is_focused,
@@ -624,6 +628,7 @@ pub(crate) fn compose_capture_elements(
                     &shader,
                     body_logical,
                     outer_corner_radius(effective_corner_radius as f32, effective_bw as f32),
+                    state.config.decorations.squircle,
                     opacity,
                     scale,
                     zoom,
@@ -649,6 +654,7 @@ pub(crate) fn compose_capture_elements(
                     shader,
                     geometry,
                     [radius, radius, radius, radius],
+                    state.config.decorations.squircle,
                     zoom,
                     output_scale,
                     None,
@@ -664,6 +670,7 @@ pub(crate) fn compose_capture_elements(
                         &border_shader,
                         geometry,
                         radius,
+                        state.config.decorations.squircle,
                         effective_bw,
                         border_color,
                         is_focused,
@@ -691,6 +698,7 @@ pub(crate) fn compose_capture_elements(
                         &shader,
                         body_logical,
                         outer_corner_radius(effective_corner_radius as f32, effective_bw as f32),
+                        state.config.decorations.squircle,
                         opacity,
                         scale,
                         zoom,
@@ -845,6 +853,15 @@ pub fn compose_frame(
     // so they never shift the normal windows' blur element indices.
     let mut zoomed_closing: Vec<OutputRenderElements> = Vec::new();
 
+    if state.render.blur_shader_dirty {
+        let (down, up, mask, animated) =
+            compile_blur_shaders(renderer, state.config.effects.blur_shader.as_deref());
+        state.render.blur_down_shader = down;
+        state.render.blur_up_shader = up;
+        state.render.blur_mask_shader = mask;
+        state.render.blur_is_animated = animated;
+        state.render.blur_shader_dirty = false;
+    }
     let blur_enabled = state.render.blur_down_shader.is_some()
         && state.render.blur_up_shader.is_some()
         && state.render.blur_mask_shader.is_some();
@@ -1355,6 +1372,7 @@ pub fn compose_frame(
                         shader,
                         geometry,
                         [0.0, 0.0, radius, radius],
+                        state.config.decorations.squircle,
                         zoom,
                         output_scale,
                         window_animation,
@@ -1382,6 +1400,7 @@ pub fn compose_frame(
                     &shader,
                     inner_logical,
                     effective_corner_radius as f32,
+                    state.config.decorations.squircle,
                     effective_bw,
                     border_color,
                     is_focused,
@@ -1414,6 +1433,7 @@ pub fn compose_frame(
                     &shader,
                     body_logical,
                     outer_corner_radius(effective_corner_radius as f32, effective_bw as f32),
+                    state.config.decorations.squircle,
                     chrome_opacity,
                     scale,
                     zoom,
@@ -1452,6 +1472,7 @@ pub fn compose_frame(
                     shader,
                     geometry,
                     [radius, radius, radius, radius],
+                    state.config.decorations.squircle,
                     zoom,
                     output_scale,
                     window_animation,
@@ -1467,6 +1488,7 @@ pub fn compose_frame(
                         &border_shader,
                         geometry,
                         radius,
+                        state.config.decorations.squircle,
                         effective_bw,
                         border_color,
                         is_focused,
@@ -1498,6 +1520,7 @@ pub fn compose_frame(
                         &shader,
                         body_logical,
                         outer_corner_radius(effective_corner_radius as f32, effective_bw as f32),
+                        state.config.decorations.squircle,
                         chrome_opacity,
                         scale,
                         zoom,

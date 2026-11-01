@@ -227,6 +227,7 @@ impl ClosePixels {
 pub(crate) struct BakeChrome {
     pub bare: bool,
     pub corner_radius: [f32; 4],
+    pub squircle: bool,
 }
 
 /// The content a window is about to replace, cloned while a compositor resize
@@ -386,6 +387,7 @@ pub(crate) fn resize_crossfade(
             let chrome = CloseChrome {
                 geometry,
                 corner_radius: chrome.corner_radius,
+                squircle: chrome.squircle,
                 corner_clip: Some(clip),
                 border_shader: None,
                 border_width: 0,
@@ -460,6 +462,7 @@ pub(crate) struct CloseChrome<'a> {
     /// Per-corner radii in logical px, `(tl, tr, br, bl)`; the top pair is 0
     /// under an SSD bar, matching the live clip.
     pub corner_radius: [f32; 4],
+    pub squircle: bool,
     pub corner_clip: Option<&'a GlesTexProgram>,
     pub border_shader: Option<&'a GlesPixelProgram>,
     pub border_width: i32,
@@ -584,6 +587,7 @@ fn flatten(
             shader,
             body,
             shaders::outer_corner_radius(chrome.corner_radius[2], chrome.border_width as f32),
+            chrome.squircle,
             scale,
         )
     });
@@ -592,6 +596,7 @@ fn flatten(
             shader,
             body,
             chrome.corner_radius[2],
+            chrome.squircle,
             chrome.border_width,
             chrome.border_color,
             chrome.focused,
@@ -666,6 +671,7 @@ fn flatten(
             "corner_radius",
             (clamped[0], clamped[1], clamped[2], clamped[3]),
         ),
+        Uniform::new("u_squircle", if chrome.squircle { 1.0 } else { 0.0 }),
         // A scale, not the identity: the content texture covers the rounded-up
         // extent, so mapping the painted rect onto [0,1] leaves the tie column
         // past 1.0 where the shader discards it, as the live clip does.
@@ -942,6 +948,7 @@ mod resize_capture_tests {
         BakeChrome {
             bare: true,
             corner_radius: [0.0; 4],
+            squircle: true,
         }
     }
 

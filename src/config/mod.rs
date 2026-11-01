@@ -1805,6 +1805,28 @@ mod tests {
     }
 
     #[test]
+    fn custom_blur_shader_and_corner_style_are_parsed() {
+        let config = Config::from_toml(
+            r#"
+            [effects]
+            blur_shader = "/tmp/frost.glsl"
+
+            [decorations]
+            squircle = false
+            "#,
+        )
+        .unwrap();
+        assert_eq!(
+            config.effects.blur_shader.as_deref(),
+            Some("/tmp/frost.glsl")
+        );
+        assert!(!config.decorations.squircle);
+        assert_eq!(Config::default().effects.blur_shader, None);
+        assert!(Config::default().decorations.squircle);
+        assert!(Config::default().decorations.blur);
+    }
+
+    #[test]
     fn parse_output_rule_negative_scale() {
         let toml_str = r#"
             [[outputs]]

@@ -15,12 +15,13 @@ uniform float u_border_width;
 uniform float u_outer_radius;
 uniform float u_aa_scale;   // output pixels per shader-logical unit
 uniform vec4 u_color;
+uniform float u_squircle;
 
-float sd_squircle(vec2 p, vec2 half_size, float r) {
+float sd_rounded_box(vec2 p, vec2 half_size, float r) {
     vec2 q = abs(p) - half_size + vec2(r);
     if (r > 0.0 && q.x > 0.0 && q.y > 0.0) {
         vec2 d = q / r;
-        float n = 4.0;
+        float n = mix(2.0, 4.0, u_squircle);
         return r * pow(pow(d.x, n) + pow(d.y, n), 1.0 / n) - r;
     }
     return length(max(q, vec2(0.0))) + min(max(q.x, q.y), 0.0) - r;
@@ -34,8 +35,8 @@ void main() {
 
     vec2 outer_half = inner_half + vec2(u_border_width);
 
-    float sd_inner = sd_squircle(p, inner_half, u_inner_radius);
-    float sd_outer = sd_squircle(p, outer_half, u_outer_radius);
+    float sd_inner = sd_rounded_box(p, inner_half, u_inner_radius);
+    float sd_outer = sd_rounded_box(p, outer_half, u_outer_radius);
 
     // Stroke region: outside the inner rect AND inside the outer rect,
     // anti-aliased over a one-output-pixel band at each edge.

@@ -219,6 +219,7 @@
 # fg_color = "#333333"           # title text + close button × color
 # corner_radius = 10             # rounded corners; off while the window covers
                                  # the usable area
+# squircle = true                # superellipse corners; false = circular arcs
 # shadow = true                  # drop shadow; off while the window covers the
                                  # usable area
 
@@ -257,7 +258,7 @@
 
 # # Frost the backdrop of every window, as the `blur` rule does for one.
 # # Fullscreen windows and layer surfaces are left alone.
-# blur = false
+# blur = true
 # # Example: dim + frost
 # # opacity = 0.85
 # # blur = true
@@ -265,10 +266,16 @@
 [effects]
 # blur_radius = 5                # number of Kawase down+up passes
 # blur_strength = 1.5            # per-pass texel spread
-# animate_blur_fps = 20          # cap (0-144) on re-sampling a background that
-                                 # moves on its own (u_time shaders, wallpaper
-                                 # daemons); 0 freezes it. Pans and zooms
-                                 # always refresh.
+# # Custom GLSL for the upsample passes, or "none" for classic Kawase blur.
+# # The shader receives tex, v_coords, alpha, u_halfpixel, u_offset and u_time;
+# # see extras/blur/frosted_ice.glsl. Reload config after editing the shader.
+# blur_shader = "none"
+# # Example: frosted-ice window backgrounds
+# # blur_shader = "/usr/local/share/driftwm/blur/frosted_ice.glsl"
+# animate_blur_fps = 20          # cap (0-144) on re-sampling a background or
+                                 # custom blur shader that moves on its own
+                                 # (u_time shaders, wallpaper daemons); 0 freezes
+                                 # them. Pans and zooms always refresh.
 # animation_speed = 0.5          # window animation lerp factor (1 = instant)
 # animation_scale = 0.95         # open/close grow/shrink amplitude (1 = fade only)
 

@@ -174,6 +174,7 @@ pub(crate) fn render_if_needed(data: &mut DriftWm) {
     if data.redraws_needed.is_empty()
         && !data.has_active_animations()
         && !data.background_animation_due_any()
+        && !data.blur_animation_due_any()
         && !data.output_config_dirty
         && data.pending_dpms.is_empty()
         && !any_chunked_pending
@@ -216,6 +217,19 @@ pub(crate) fn render_if_needed(data: &mut DriftWm) {
             {
                 data.render.background_tick_armed = true;
             }
+        }
+        if let Some(wait) = data.blur_animation_wait()
+            && !data.render.blur_tick_armed
+            && data
+                .loop_handle
+                .insert_source(Timer::from_duration(wait), |_, _, data: &mut DriftWm| {
+                    data.render.blur_tick_armed = false;
+                    render_if_needed(data);
+                    TimeoutAction::Drop
+                })
+                .is_ok()
+        {
+            data.render.blur_tick_armed = true;
         }
         return;
     }
@@ -325,7 +339,9 @@ pub(crate) fn render_if_needed(data: &mut DriftWm) {
         if data.dpms_off_outputs.contains(&surface.output) {
             continue;
         }
-        if data.output_has_active_animations(&surface.output) {
+        if data.output_has_active_animations(&surface.output)
+            || data.blur_animation_due(&surface.output.name())
+        {
             data.redraws_needed.insert(surface.output.clone());
         }
         // Chunked-bg with tiles still to upload: keep firing frames until the
@@ -694,11 +710,14 @@ pub fn init_udev(
         data.render.border_shader = crate::render::compile_border_shader(backend.renderer());
         data.render.corner_clip_shader =
             crate::render::compile_corner_clip_shader(backend.renderer());
-        let (blur_down, blur_up, blur_mask) =
-            crate::render::compile_blur_shaders(backend.renderer());
+        let (blur_down, blur_up, blur_mask, blur_animated) = crate::render::compile_blur_shaders(
+            backend.renderer(),
+            data.config.effects.blur_shader.as_deref(),
+        );
         data.render.blur_down_shader = blur_down;
         data.render.blur_up_shader = blur_up;
         data.render.blur_mask_shader = blur_mask;
+        data.render.blur_is_animated = blur_animated;
         // The blur's wrap mode is a property of the GL context, and this is a
         // new one.
         data.render.blur_wrap_mode = None;

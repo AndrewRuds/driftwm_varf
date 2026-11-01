@@ -263,10 +263,14 @@ pub fn resize_edge_at(
     })
 }
 
-fn squircle_dist(dx: f64, dy: f64, r: f64) -> f64 {
-    let ax = (dx / r).abs();
-    let ay = (dy / r).abs();
-    r * (ax.powi(4) + ay.powi(4)).powf(0.25)
+fn corner_dist(dx: f64, dy: f64, r: f64, squircle: bool) -> f64 {
+    if squircle {
+        let ax = (dx / r).abs();
+        let ay = (dy / r).abs();
+        r * (ax.powi(4) + ay.powi(4)).powf(0.25)
+    } else {
+        (dx * dx + dy * dy).sqrt()
+    }
 }
 
 /// CPU-render the title bar: solid background, rounded top corners, title text,
@@ -302,7 +306,7 @@ pub fn render_title_bar(
             let idx = ((y * w + x) * 4) as usize;
 
             // Corner rounding: compute alpha for top-left and top-right arcs
-            let corner_alpha = corner_alpha_at(x, y, w, cr);
+            let corner_alpha = corner_alpha_at(x, y, w, cr, config.squircle);
 
             pixels[idx] = (bg[0] as f64 * corner_alpha) as u8;
             pixels[idx + 1] = (bg[1] as f64 * corner_alpha) as u8;
@@ -409,7 +413,7 @@ pub fn render_body_fill(
     for y in 0..h {
         for x in 0..w {
             let idx = ((y * w + x) * 4) as usize;
-            let a = body_corner_alpha_at(x, y, w, h, cr) * ba;
+            let a = body_corner_alpha_at(x, y, w, h, cr, config.squircle) * ba;
             pixels[idx] = (bg[0] as f64 * a) as u8;
             pixels[idx + 1] = (bg[1] as f64 * a) as u8;
             pixels[idx + 2] = (bg[2] as f64 * a) as u8;
@@ -430,7 +434,7 @@ pub fn render_body_fill(
 /// Anti-aliased coverage (1 inside → 0 outside) for a body pixel, rounding only
 /// the bottom corners (the title bar covers the top pair). Mirrors
 /// `corner_alpha_at`'s smoothstep falloff.
-fn body_corner_alpha_at(x: i32, y: i32, w: i32, h: i32, r: f64) -> f64 {
+fn body_corner_alpha_at(x: i32, y: i32, w: i32, h: i32, r: f64, squircle: bool) -> f64 {
     if r <= 0.0 {
         return 1.0;
     }
@@ -452,13 +456,13 @@ fn body_corner_alpha_at(x: i32, y: i32, w: i32, h: i32, r: f64) -> f64 {
 
     let dx = px - cx;
     let dy = py - cy;
-    let dist = squircle_dist(dx, dy, r);
+    let dist = corner_dist(dx, dy, r, squircle);
     let t = (dist - r + 0.5).clamp(0.0, 1.0);
     1.0 - t * t * (3.0 - 2.0 * t)
 }
 
 /// Anti-aliased alpha for top-left and top-right corner rounding.
-fn corner_alpha_at(x: i32, y: i32, w: i32, r: f64) -> f64 {
+fn corner_alpha_at(x: i32, y: i32, w: i32, r: f64, squircle: bool) -> f64 {
     if r <= 0.0 {
         return 1.0;
     }
@@ -469,7 +473,7 @@ fn corner_alpha_at(x: i32, y: i32, w: i32, r: f64) -> f64 {
     if px < r && py < r {
         let dx = r - px;
         let dy = r - py;
-        let dist = squircle_dist(dx, dy, r);
+        let dist = corner_dist(dx, dy, r, squircle);
         let t = (dist - r + 0.5).clamp(0.0, 1.0);
         return 1.0 - t * t * (3.0 - 2.0 * t);
     }
@@ -478,7 +482,7 @@ fn corner_alpha_at(x: i32, y: i32, w: i32, r: f64) -> f64 {
     if px > right_edge - r && py < r {
         let dx = px - (right_edge - r);
         let dy = r - py;
-        let dist = squircle_dist(dx, dy, r);
+        let dist = corner_dist(dx, dy, r, squircle);
         let t = (dist - r + 0.5).clamp(0.0, 1.0);
         return 1.0 - t * t * (3.0 - 2.0 * t);
     }

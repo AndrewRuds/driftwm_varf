@@ -222,7 +222,7 @@ off while an external mouse is connected
 
 Default: `[]`
 
-device-name substrings whose pointer motion, scroll and swipe direction are flipped on both axes, for a trackpad mounted upside down, e.g. `["Magic Trackpad"]`; `libinput list-devices` shows the names
+device-name substrings to flip on both axes (pointer, scroll, swipe), for a trackpad mounted upside down, e.g. ["Magic Trackpad"]; `libinput list-devices` shows the names
 
 ## `[input.mouse]`
 
@@ -537,6 +537,12 @@ Default: `10`
 
 rounded corners; off while the window covers the usable area
 
+### `squircle`
+
+Default: `true`
+
+superellipse corners; false = circular arcs
+
 ### `shadow`
 
 Default: `true`
@@ -625,7 +631,7 @@ focused windows
 
 ### `blur`
 
-Default: `false`
+Default: `true`
 
 Frost the backdrop of every window, as the `blur` rule does for one. Fullscreen windows and layer surfaces are left alone.
 
@@ -650,11 +656,23 @@ Default: `1.5`
 
 per-pass texel spread
 
+### `blur_shader`
+
+Default: `"none"`
+
+Custom GLSL for the upsample passes, or "none" for classic Kawase blur. The shader receives tex, v_coords, alpha, u_halfpixel, u_offset and u_time; see extras/blur/frosted_ice.glsl. Reload config after editing the shader.
+
+**Example: frosted-ice window backgrounds**
+
+```toml
+blur_shader = "/usr/local/share/driftwm/blur/frosted_ice.glsl"
+```
+
 ### `animate_blur_fps`
 
 Default: `20`
 
-cap (0-144) on re-sampling a background that moves on its own (u_time shaders, wallpaper daemons); 0 freezes it. Pans and zooms always refresh.
+cap (0-144) on re-sampling a background or custom blur shader that moves on its own (u_time shaders, wallpaper daemons); 0 freezes them. Pans and zooms always refresh.
 
 ### `animation_speed`
 

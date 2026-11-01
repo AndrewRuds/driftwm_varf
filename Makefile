@@ -25,6 +25,7 @@ install:
 		rel=$${f#extras/wallpapers/}; \
 		install -Dm644 "$$f" "$(DESTDIR)$(DATADIR)/driftwm/wallpapers/$$rel"; \
 	done
+	install -Dm644 extras/blur/frosted_ice.glsl $(DESTDIR)$(DATADIR)/driftwm/blur/frosted_ice.glsl
 
 uninstall:
 	rm -f $(DESTDIR)$(BINDIR)/driftwm

@@ -998,11 +998,11 @@ fn toml_gesture_anywhere_only_not_on_window() {
 }
 
 #[test]
-fn toml_decoration_opacity_defaults_to_opaque_with_blur_off() {
+fn toml_decoration_opacity_defaults_to_opaque_with_blur_on() {
     let config = Config::from_toml("").unwrap();
     assert_eq!(config.decorations.opacity, 1.0);
     assert_eq!(config.decorations.opacity_focused, 1.0);
-    assert!(!config.decorations.blur);
+    assert!(config.decorations.blur);
 }
 
 #[test]
@@ -1011,12 +1011,12 @@ fn toml_decoration_opacity_and_blur_round_trip() {
         [decorations]
         opacity = 0.6
         opacity_focused = 0.9
-        blur = true
+        blur = false
     "#;
     let config = Config::from_toml(toml).unwrap();
     assert_eq!(config.decorations.opacity, 0.6);
     assert_eq!(config.decorations.opacity_focused, 0.9);
-    assert!(config.decorations.blur);
+    assert!(!config.decorations.blur);
 }
 
 #[test]

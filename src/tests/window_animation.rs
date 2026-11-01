@@ -113,6 +113,7 @@ fn seed_resize_capture(f: &mut Fixture, id: ElementId) {
         crate::render::BakeChrome {
             bare: true,
             corner_radius: [0.0; 4],
+            squircle: true,
         },
         generation,
     );

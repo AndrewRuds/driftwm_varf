@@ -56,6 +56,7 @@ pub(super) struct BackendFileConfig {
 pub(super) struct EffectsFileConfig {
     pub blur_radius: Option<u32>,
     pub blur_strength: Option<f64>,
+    pub blur_shader: Option<String>,
     pub animate_blur: Option<bool>,
     pub animate_blur_fps: Option<u32>,
     pub animation_speed: Option<f64>,
@@ -261,6 +262,7 @@ pub(super) struct DecorationFileConfig {
     pub bg_color: Option<String>,
     pub fg_color: Option<String>,
     pub corner_radius: Option<i32>,
+    pub squircle: Option<bool>,
     pub default_mode: Option<String>,
     pub border_width: Option<i32>,
     pub border_color: Option<String>,

@@ -105,6 +105,7 @@ impl DriftWm {
         // they feed is clamped, so the cache usually keeps its size and holds
         // the old frost. Drop the caches so the new settings take effect.
         self.render.blur_cache.clear();
+        self.render.blur_shader_dirty = true;
         // Sized off that same padding, so the extents it pooled are the old
         // ones.
         self.render.blur_scratch.clear();

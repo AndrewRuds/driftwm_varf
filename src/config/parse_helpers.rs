@@ -285,6 +285,7 @@ pub(super) fn parse_decoration_config(
             "decorations.corner_radius",
             errors,
         ),
+        squircle: raw.squircle.unwrap_or(defaults.squircle),
         default_mode,
         border_width: clamp_warn(
             raw.border_width.unwrap_or(defaults.border_width),
@@ -518,6 +519,10 @@ pub(super) fn parse_effects_config(raw: EffectsFileConfig, errors: &mut Warnings
             "effects.blur_strength",
             errors,
         ),
+        blur_shader: raw
+            .blur_shader
+            .filter(|path| path != "none")
+            .map(|path| super::toml::expand_tilde(&path)),
         // 0 = off (frost freezes, stops re-sampling the animated wallpaper).
         animate_blur_fps: raw.animate_blur_fps.unwrap_or(20).min(144),
         animation_speed: unit_range_or_default(

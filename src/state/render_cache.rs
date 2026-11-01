@@ -29,6 +29,10 @@ pub struct RenderCache {
     pub blur_down_shader: Option<GlesTexProgram>,
     pub blur_up_shader: Option<GlesTexProgram>,
     pub blur_mask_shader: Option<GlesTexProgram>,
+    pub blur_is_animated: bool,
+    /// Recompile after a config reload, including edits to the same shader file.
+    pub blur_shader_dirty: bool,
+    pub blur_tick_armed: bool,
     /// Keyed by `(output name, surface id)`: a window visible on two outputs needs
     /// an independent blur per output (different scale, size, behind-scene). Keying
     /// by output also lets each output's per-frame prune touch only its own entries.
@@ -96,6 +100,9 @@ impl RenderCache {
             blur_down_shader: None,
             blur_up_shader: None,
             blur_mask_shader: None,
+            blur_is_animated: false,
+            blur_shader_dirty: false,
+            blur_tick_armed: false,
             blur_cache: HashMap::new(),
             blur_geometry_generation: 0,
             blur_wrap_mode: None,

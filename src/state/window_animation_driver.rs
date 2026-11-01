@@ -1115,6 +1115,7 @@ impl DriftWm {
             return crate::render::BakeChrome {
                 bare: true,
                 corner_radius: [0.0; 4],
+                squircle: self.config.decorations.squircle,
             };
         }
         let radius = driftwm::config::effective_corner_radius(
@@ -1133,6 +1134,7 @@ impl DriftWm {
         crate::render::BakeChrome {
             bare: false,
             corner_radius,
+            squircle: self.config.decorations.squircle,
         }
     }
 
@@ -1298,6 +1300,7 @@ impl DriftWm {
             Some(crate::render::CloseChrome {
                 geometry: Rectangle::new(geom_loc.to_f64(), geom_size.to_f64()),
                 corner_radius,
+                squircle: policy.squircle,
                 corner_clip: corner_clip.as_ref(),
                 border_shader: border_shader.as_ref(),
                 border_width: bw,

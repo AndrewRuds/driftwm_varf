@@ -652,6 +652,7 @@ pub struct RoundedCornerElement {
     shader: GlesTexProgram,
     geometry: Rectangle<f64, Logical>,
     corner_radius: [f32; 4],
+    squircle: bool,
     output_scale: f64,
     aa_scale: f32,
 }
@@ -662,6 +663,7 @@ impl RoundedCornerElement {
         shader: GlesTexProgram,
         geometry: Rectangle<f64, Logical>,
         corner_radius: [f32; 4],
+        squircle: bool,
         output_scale: f64,
         aa_scale: f32,
     ) -> Self {
@@ -670,6 +672,7 @@ impl RoundedCornerElement {
             shader,
             geometry,
             corner_radius,
+            squircle,
             output_scale,
             aa_scale,
         }
@@ -772,6 +775,7 @@ impl RoundedCornerElement {
                     transpose: false,
                 },
             ),
+            Uniform::new("u_squircle", if self.squircle { 1.0 } else { 0.0 }),
         ]
     }
 }

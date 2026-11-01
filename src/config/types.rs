@@ -1067,6 +1067,8 @@ pub struct BackendConfig {
 pub struct EffectsConfig {
     pub blur_radius: u32,
     pub blur_strength: f64,
+    /// Custom GLSL for the blur upsample passes; `None` uses classic Kawase blur.
+    pub blur_shader: Option<String>,
     /// Refresh rate of the shared animated-background blur; `0` disables the
     /// live refresh (the frost freezes over an animated wallpaper). Animated
     /// wallpapers evolve slowly; re-blurring at a fraction of the output
@@ -1085,6 +1087,7 @@ impl Default for EffectsConfig {
         Self {
             blur_radius: 5,
             blur_strength: 1.5,
+            blur_shader: None,
             animate_blur_fps: 20,
             animation_speed: 0.5,
             animation_scale: 0.95,
@@ -1111,6 +1114,8 @@ pub struct DecorationConfig {
     pub bg_color: [u8; 4],
     pub fg_color: [u8; 4],
     pub corner_radius: i32,
+    /// Use a superellipse for rounded corners instead of a circular arc.
+    pub squircle: bool,
     /// Default decoration mode for windows without a matching rule.
     pub default_mode: DecorationMode,
     /// Border width in pixels. `0` disables the border. Applies to `client`,
@@ -1142,13 +1147,14 @@ impl Default for DecorationConfig {
             bg_color: [0xFF, 0xFF, 0xFF, 0xFF],
             fg_color: [0x33, 0x33, 0x33, 0xFF],
             corner_radius: 10,
+            squircle: true,
             default_mode: DecorationMode::Client,
             border_width: 0,
             border_color: [0x33, 0x33, 0x33, 0xFF],
             border_color_focused: [0x33, 0x33, 0x33, 0xFF],
             opacity: 1.0,
             opacity_focused: 1.0,
-            blur: false,
+            blur: true,
             shadow: true,
             title_bar_height: 25,
             font: "Adwaita Sans".to_string(),

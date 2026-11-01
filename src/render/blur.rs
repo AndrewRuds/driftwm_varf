@@ -525,6 +525,8 @@ struct SharedRefreshInputs {
     bg_structure_changed: bool,
     /// A background element committed new content since the last refresh.
     bg_content_changed: bool,
+    /// The custom blur shader itself consumes `u_time`.
+    blur_animated: bool,
     animate_blur_fps: u32,
 }
 
@@ -542,7 +544,7 @@ fn shared_refresh_due(input: &SharedRefreshInputs) -> bool {
     // `0` means "never re-sample the background's own animation" — the frost is
     // captured once and thereafter only follows the view. Returning here also
     // keeps `1.0 / fps` from becoming an infinite `Duration`, which panics.
-    if input.animate_blur_fps == 0 || !input.bg_content_changed {
+    if input.animate_blur_fps == 0 || !(input.bg_content_changed || input.blur_animated) {
         return false;
     }
     since_refresh >= std::time::Duration::from_secs_f64(1.0 / input.animate_blur_fps as f64)
@@ -840,24 +842,50 @@ static BLUR_MASK_SRC: &str = include_str!("../shaders/blur_mask.glsl");
 
 pub(crate) fn compile_blur_shaders(
     renderer: &mut GlesRenderer,
+    custom_shader: Option<&str>,
 ) -> (
     Option<GlesTexProgram>,
     Option<GlesTexProgram>,
     Option<GlesTexProgram>,
+    bool,
 ) {
     let uniforms = &[
         UniformName::new("u_halfpixel", UniformType::_2f),
         UniformName::new("u_offset", UniformType::_1f),
+        UniformName::new("u_time", UniformType::_1f),
     ];
+    let custom_source = custom_shader.and_then(|path| {
+        std::fs::read_to_string(path)
+            .map_err(|e| {
+                tracing::error!("Failed to read blur shader '{path}': {e}; using classic blur")
+            })
+            .ok()
+    });
+    let up_source = custom_source.as_deref().unwrap_or(BLUR_UP_SRC);
+    let custom_animated = custom_source.as_deref().is_some_and(|src| {
+        ["", "lowp ", "mediump ", "highp "]
+            .iter()
+            .any(|precision| src.contains(&format!("uniform {precision}float u_time")))
+    });
+    let up_shader = renderer
+        .compile_custom_texture_shader(up_source, uniforms)
+        .or_else(|e| {
+            if custom_source.is_none() {
+                return Err(e);
+            }
+            tracing::error!("Failed to compile custom blur shader: {e}; using classic blur");
+            renderer.compile_custom_texture_shader(BLUR_UP_SRC, uniforms)
+        });
+    let animated = up_shader.is_ok() && custom_source.is_some() && custom_animated;
     match (
         renderer.compile_custom_texture_shader(BLUR_DOWN_SRC, uniforms),
-        renderer.compile_custom_texture_shader(BLUR_UP_SRC, uniforms),
+        up_shader,
         renderer.compile_custom_texture_shader(BLUR_MASK_SRC, &[]),
     ) {
-        (Ok(d), Ok(u), Ok(m)) => (Some(d), Some(u), Some(m)),
+        (Ok(d), Ok(u), Ok(m)) => (Some(d), Some(u), Some(m), animated),
         (Err(e), _, _) | (_, Err(e), _) | (_, _, Err(e)) => {
             tracing::error!("Failed to compile blur shaders: {e:?}");
-            (None, None, None)
+            (None, None, None, false)
         }
     }
 }
@@ -870,6 +898,7 @@ pub(crate) fn compile_blur_shaders(
 /// instead leaves the remainder as `create_buffer` handed it over — undefined —
 /// and the taps at the sub-rect's edge read straight into it, because the
 /// mirror wrap reflects about the allocation edge and not the sub-rect's.
+#[allow(clippy::too_many_arguments)]
 fn render_blur(
     renderer: &mut GlesRenderer,
     down_shader: &GlesTexProgram,
@@ -878,6 +907,7 @@ fn render_blur(
     tex_b: &mut GlesTexture,
     offset: f32,
     passes: usize,
+    time_secs: f32,
 ) -> Result<(), GlesError> {
     use smithay::backend::renderer::Texture;
 
@@ -893,6 +923,7 @@ fn render_blur(
             offset,
             i,
             passes,
+            time_secs,
             true,
         )?;
         std::mem::swap(tex_a, tex_b);
@@ -900,7 +931,7 @@ fn render_blur(
 
     for i in 0..passes {
         blur_pass(
-            renderer, up_shader, tex_a, tex_b, alloc, offset, i, passes, false,
+            renderer, up_shader, tex_a, tex_b, alloc, offset, i, passes, time_secs, false,
         )?;
         std::mem::swap(tex_a, tex_b);
     }
@@ -920,6 +951,7 @@ fn blur_pass(
     offset: f32,
     i: usize,
     passes: usize,
+    time_secs: f32,
     downscale: bool,
 ) -> Result<(), GlesError> {
     use smithay::backend::renderer::{Bind, Color32F, Frame, Renderer};
@@ -965,6 +997,7 @@ fn blur_pass(
             &[
                 Uniform::new("u_halfpixel", half_pixel),
                 Uniform::new("u_offset", pass_offset),
+                Uniform::new("u_time", time_secs),
             ],
         )?;
         let _ = frame.finish()?;
@@ -1066,6 +1099,7 @@ pub(crate) fn process_blur_requests(
     let blur_passes = state.config.effects.blur_radius as usize;
     // Shared by the taps and the pad, so the two cannot disagree on the scale.
     let blur_offset = state.config.effects.blur_strength as f32 * output_scale as f32;
+    let time_secs = state.start_time.elapsed().as_secs_f32();
     let context_id = renderer.context_id();
     let output_name = output.name();
     let geom_gen = state.render.blur_geometry_generation;
@@ -1168,6 +1202,7 @@ pub(crate) fn process_blur_requests(
             view_changed: shared.view != view,
             bg_structure_changed: background_structure_changed(&shared.background, &background),
             bg_content_changed: shared.background != background,
+            blur_animated: state.render.blur_is_animated,
             animate_blur_fps: state.config.effects.animate_blur_fps,
         });
         // The beat ticks whether or not the textures are rendered from it: it is
@@ -1185,16 +1220,17 @@ pub(crate) fn process_blur_requests(
             shared.textures = None;
             shared.size = output_size;
         }
-        let pays = shared_backdrop_pays(&SharedPayoff {
-            slicers,
-            coverage: if output_area > 0.0 {
-                slicer_area / output_area
-            } else {
-                0.0
-            },
-            background_empty: background_slice.is_empty(),
-            was_paying: shared.unpaid_frames == 0,
-        });
+        let pays = state.config.effects.blur_shader.is_none()
+            && shared_backdrop_pays(&SharedPayoff {
+                slicers,
+                coverage: if output_area > 0.0 {
+                    slicer_area / output_area
+                } else {
+                    0.0
+                },
+                background_empty: background_slice.is_empty(),
+                was_paying: shared.unpaid_frames == 0,
+            });
         if pays {
             shared.unpaid_frames = 0;
         } else {
@@ -1249,6 +1285,7 @@ pub(crate) fn process_blur_requests(
                             tex_b,
                             blur_offset,
                             blur_passes,
+                            time_secs,
                         )
                         .is_ok();
                     if blurred {
@@ -1648,6 +1685,7 @@ pub(crate) fn process_blur_requests(
             pad_b,
             blur_offset,
             blur_passes,
+            time_secs,
         )
         .is_err()
         {
@@ -2130,6 +2168,7 @@ mod tests {
             view_changed: false,
             bg_structure_changed: false,
             bg_content_changed: false,
+            blur_animated: false,
             animate_blur_fps: 20,
         }
     }
@@ -2171,6 +2210,27 @@ mod tests {
             ..early
         };
         assert!(shared_refresh_due(&late));
+    }
+
+    #[test]
+    fn animated_frost_refreshes_over_a_static_background() {
+        let early = SharedRefreshInputs {
+            blur_animated: true,
+            ..settled_backdrop()
+        };
+        assert!(!shared_refresh_due(&early));
+
+        let late = SharedRefreshInputs {
+            since_refresh: Some(std::time::Duration::from_millis(60)),
+            ..early
+        };
+        assert!(shared_refresh_due(&late));
+
+        let frozen = SharedRefreshInputs {
+            animate_blur_fps: 0,
+            ..late
+        };
+        assert!(!shared_refresh_due(&frozen));
     }
 
     #[test]

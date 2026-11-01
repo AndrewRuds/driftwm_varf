@@ -77,13 +77,30 @@ fn config_toml(shader_path: &str, radius: u32, strength: f64) -> String {
     )
 }
 
+#[test]
+#[ignore = "needs surfaceless EGL/GLES"]
+fn bundled_frosted_ice_shader_compiles_as_animated() {
+    let _lock = gl::lock();
+    let Some(mut renderer) = gl::surfaceless_renderer("frosted ice shader") else {
+        return;
+    };
+    let temp = TempDir::new();
+    let path = temp.path().join("frosted_ice.glsl");
+    std::fs::write(&path, include_str!("../../extras/blur/frosted_ice.glsl")).unwrap();
+    let (down, up, mask, animated) =
+        crate::render::compile_blur_shaders(&mut renderer, path.to_str());
+    assert!(down.is_some() && up.is_some() && mask.is_some());
+    assert!(animated, "u_time must drive the blur refresh cadence");
+}
+
 /// [`gl::install`] plus the blur trio it leaves alone.
 fn install_with_blur(f: &mut Fixture, mut renderer: GlesRenderer) {
-    let (down, up, mask) = crate::render::compile_blur_shaders(&mut renderer);
+    let (down, up, mask, animated) = crate::render::compile_blur_shaders(&mut renderer, None);
     gl::install(f, renderer);
     f.state().render.blur_down_shader = down;
     f.state().render.blur_up_shader = up;
     f.state().render.blur_mask_shader = mask;
+    f.state().render.blur_is_animated = animated;
     f.state().render.blur_wrap_mode = None;
 }
 

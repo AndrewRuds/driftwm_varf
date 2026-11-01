@@ -7,6 +7,15 @@
 </p>
 <p align="center"><sub>Primary repository: <a href="https://github.com/malbiruk/driftwm">GitHub</a> · Mirror: <a href="https://codeberg.org/malbiruk/driftwm">Codeberg</a></sub></p>
 
+## Fork additions
+
+New in this fork, including earlier work by **andrew_ruds**:
+
+- **Squircle window corners**, now toggleable with `[decorations] squircle = false` to restore circular rounded corners.
+- **Frosted-ice window backgrounds and custom GLSL blur shaders**. Classic Kawase blur is the default; set `[effects] blur_shader` to a GLSL file to opt in. The bundled `extras/blur/frosted_ice.glsl` animates through `u_time`, refreshed at `animate_blur_fps`.
+- **Reliable custom-blur caching**: animated frost keeps refreshing over a static backdrop, and custom displacement stays in window-local coordinates instead of changing with the shared-cache path.
+- **Per-device trackpad inversion** with `input.trackpad.invert_devices`, for trackpads mounted upside down.
+
 https://github.com/user-attachments/assets/155511a6-0a6e-4681-9061-21be1e93e02a
 
 Traditional window managers arrange windows to fit your screen. Stacking compositors do so by piling windows on top of each other; tiling compositors do so by squeezing them to fit and utilizing workspaces.
